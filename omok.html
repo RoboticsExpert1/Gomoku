@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>파이썬 정밀 오목 (모바일 변환 버전)</title>
+    <style>
+        /* 9:16 비율 및 모바일 최적화 스타일 디자인 */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #e0e0e0;
+            font-family: 'Malgun Gothic', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #game-container {
+            width: 100vw;
+            max-width: 450px;
+            height: 100vh;
+            max-height: 800px; /* 9:16 근접 비율 유지 */
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        /* 상단 패널 (상태 및 전적) */
+        .top-panel {
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+        }
+        .status-lbl {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: green;
+            margin-bottom: 5px;
+        }
+        .rank-lbl {
+            font-size: 0.9rem;
+            color: blue;
+        }
+        
+        /* 추가된 유튜브 버튼 스타일 */
+        .btn-youtube {
+            background-color: #ff0000;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            text-align: center;
+            display: block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .btn-youtube:active {
+            background-color: #cc0000;
+        }
+
+        /* 중앙 오목판 패널 */
+        .canvas-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            background-color: #e3a857;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            width: 100%;
+            height: 100%;
+        }
+        /* 하단 제어 패널 */
+        .control-panel {
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #333;
+            min-width: 70px;
+        }
+        .options {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }
+        label {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        /* 난이도 조절 컴포넌트 */
+        .level-picker {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .level-lbl {
+            width: 70px;
+            text-align: center;
+            font-weight: bold;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 2px 5px;
+            font-size: 0.9rem;
+        }
+        .btn-arrow {
+            width: 25px;
+            height: 25px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        /* 메인 제어 버튼 */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-start { background-color: #d4edda; color: #155724; }
+        .btn-start:disabled { background-color: #e2e3e5; color: #383d41; cursor: not-allowed; }
+        .btn-stop { background-color: #f8d7da; color: #721c24; }
+        .btn-stop:disabled { background-color: #e2e3e5; color: #383d41; cursor: not-allowed; }
+        .btn-reset { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="top-panel">
+        <div id="turn-status-lbl" class="status-lbl">대기 중</div>
+        <div id="rank-lbl" class="rank-lbl">전적 기록 비활성화</div>
+    </div>
+    <a href="https://www.youtube.com/@robotics_expert?sub_confirmation=1" target="_blank" class="btn-youtube" style="display: block; text-align: center; background-color: #e2e8f0    ; color: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif; font-weight: bold; font-size: 16px; padding: 12px; margin: 10px 0; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">제작: 로봇공학자 이수철</a>
+    
+    <div class="canvas-container">
+        <canvas id="boardCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="control-panel">
+        <div class="row">
+            <span class="section-title">[ 게임 모드 ]</span>
+            <div class="options">
+                <label><input type="radio" name="mode" value="PVP" checked onchange="toggleModeUI()"> 사람 VS 사람</label>
+                <label><input type="radio" name="mode" value="PVAI" onchange="toggleModeUI()"> 사람 VS AI</label>
+            </div>
+        </div>
+
+        <div class="row">
+            <span class="section-title">[ AI전 색상 ]</span>
+            <div class="options">
+                <label><input type="radio" name="color" value="1" checked id="rb-black"> 흑 (선공)</label>
+                <label><input type="radio" name="color" value="2" id="rb-white"> 백 (후공)</label>
+            </div>
+        </div>
+
+        <div class="row">
+            <span class="section-title">[ AI 난이도 ]</span>
+            <div class="level-picker">
+                <button class="btn-arrow" onclick="levelDown()">▼</button>
+                <div id="level-label" class="level-lbl">18급</div>
+                <button class="btn-arrow" onclick="levelUp()">▲</button>
+            </div>
+            <div class="options" style="justify-content: flex-end;">
+                <label><input type="radio" name="rank" value="ON" onchange="updateRankUI()"> Rank ON</label>
+                <label><input type="radio" name="rank" value="OFF" checked onchange="updateRankUI()"> Rank OFF</label>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="btn-start" class="btn btn-start" onclick="startGame()">시 작</button>
+            <button id="btn-stop" class="btn btn-stop" onclick="stopGame()" disabled>정 지</button>
+            <button class="btn btn-reset" onclick="resetGame()">초기화</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 상수 및 글로벌 변수 설정 ---
+    const BOARD_SIZE = 15;
+    const EMPTY = 0;
+    const BLACK = 1;
+    const WHITE = 2;
+
+    let board = Array.from({length: BOARD_SIZE}, () => Array(BOARD_SIZE).fill(EMPTY));
+    let currentTurn = BLACK;
+    let isRunning = false;
+    let lastMove = null;
+    let rankData = { win: 0, lose: 0, draw: 0 };
+
+    // 급/단 리스트 구성 (18급 ~ 1급, 1단 ~ 9단)
+    let levels = [];
+    for(let i=1; i<=18; i++) levels.push(`${19-i}급`);
+    for(let i=1; i<=9; i++) levels.push(`${i}단`);
+    let levelIdx = 0;
+
+    // --- Zobrist 해싱 및 AI 클래스 구현 ---
+    class OmokAI {
+        constructor() {
+            this.zobristTable = Array.from({length: BOARD_SIZE}, () => 
+                Array.from({length: BOARD_SIZE}, () => 
+                    [this.nextId(), this.nextId(), this.nextId()]
+                )
+            );
+            this.transpositionTable = new Map();
+        }
+
+        nextId() {
+            return BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) ^ (BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) << 32n);
+        }
+
+        getHash(boardState) {
+            let h = 0n;
+            for(let r=0; r<BOARD_SIZE; r++) {
+                for(let c=0; c<BOARD_SIZE; c++) {
+                    h ^= this.zobristTable[r][c][boardState[r][c]];
+                }
+            }
+            return h;
+        }
+
+        computeMove(boardState, aiColor, level) {
+            let oppColor = (aiColor === BLACK) ? WHITE : BLACK;
+            let maxDepth = 1;
+            let maxTime = 100; // ms 단위
+
+            if (level <= 9) { maxDepth = 1; maxTime = 100; }
+            else if (level <= 18) { maxDepth = 2; maxTime = 300; }
+            else { maxDepth = 3; maxTime = 500 + (level - 18) * 200; }
+
+            let startTime = performance.now();
+            this.transpositionTable.clear();
+
+            let myWinMove = this.findImmediateWin(boardState, aiColor);
+            if (myWinMove) return myWinMove;
+
+            let oppWinMove = this.findImmediateWin(boardState, oppColor);
+            if (oppWinMove) return oppWinMove;
+
+            if (level >= 19) {
+                let oppOpenThree = this.findOpenThree(boardState, oppColor);
+                if (oppOpenThree) return oppOpenThree;
+            }
+
+            let candidates = this.getCandidates(boardState);
+            if (candidates.length === 0) return [Math.floor(BOARD_SIZE/2), Math.floor(BOARD_SIZE/2)];
+
+            if (aiColor === BLACK) {
+                candidates = candidates.filter(mv => this.isValidMoveForRule(boardState, mv[0], mv[1], BLACK));
+                if (candidates.length === 0) candidates = this.getCandidates(boardState);
+            }
+
+            candidates.sort((a, b) => this.quickEvaluateMove(boardState, b[0], b[1], aiColor, oppColor) - this.quickEvaluateMove(boardState, a[0], a[1], aiColor, oppColor));
+
+            let bestScore = -Infinity;
+            let bestMove = candidates[0];
+
+            for (let [r, c] of candidates) {
+                if (performance.now() - startTime > maxTime) break;
+
+                boardState[r][c] = aiColor;
+                let score = this.alphaBeta(boardState, maxDepth - 1, -Infinity, Infinity, false, aiColor, oppColor, startTime, maxTime);
+                boardState[r][c] = EMPTY;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = [r, c];
+                }
+            }
+            return bestMove;
+        }
+
+        isValidMoveForRule(boardState, r, c, color) {
+            if (color === WHITE) return true;
+            let directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+
+            for (let [dr, dc] of directions) {
+                if (this.checkLineCount(boardState, r, c, dr, dc, BLACK) > 5) return false;
+            }
+
+            let openThreeCount = 0;
+            let fourCount = 0;
+
+            boardState[r][c] = BLACK;
+            for (let [dr, dc] of directions) {
+                if (this.isPureOpenThree(boardState, r, c, dr, dc)) openThreeCount++;
+                if (this.isFourLine(boardState, r, c, dr, dc)) fourCount++;
+            }
+            boardState[r][c] = EMPTY;
+
+            if (openThreeCount >= 2) return false;
+            if (fourCount >= 2) return false;
+            return true;
+        }
+
+        alphaBeta(boardState, depth, alpha, beta, isMaximizing, aiColor, oppColor, startTime, maxTime) {
+            let boardHash = this.getHash(boardState).toString();
+            if (this.transpositionTable.has(boardHash)) return this.transpositionTable.get(boardHash);
+
+            if (depth === 0 || (performance.now() - startTime) > maxTime) {
+                let val = this.evaluateBoard(boardState, aiColor, oppColor);
+                this.transpositionTable.set(boardHash, val);
+                return val;
+            }
+
+            let candidates = this.getCandidates(boardState);
+
+            if (isMaximizing) {
+                let maxEval = -Infinity;
+                for (let [r, c] of candidates) {
+                    boardState[r][c] = aiColor;
+                    let ev = this.alphaBeta(boardState, depth - 1, alpha, beta, false, aiColor, oppColor, startTime, maxTime);
+                    boardState[r][c] = EMPTY;
+                    maxEval = Math.max(maxEval, ev);
+                    alpha = Math.max(alpha, ev);
+                    if (beta <= alpha) break;
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (let [r, c] of candidates) {
+                    boardState[r][c] = oppColor;
+                    let ev = this.alphaBeta(boardState, depth - 1, alpha, beta, true, aiColor, oppColor, startTime, maxTime);
+                    boardState[r][c] = EMPTY;
+                    minEval = Math.min(minEval, ev);
+                    beta = Math.min(beta, ev);
+                    if (beta <= alpha) break;
+                }
+                return minEval;
+            }
+        }
+
+        findImmediateWin(boardState, color) {
+            let directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            for (let r=0; r<BOARD_SIZE; r++) {
+                for (let c=0; c<BOARD_SIZE; c++) {
+                    if (boardState[r][c] === EMPTY) {
+                        for (let [dr, dc] of directions) {
+                            let cnt = this.checkLineCount(boardState, r, c, dr, dc, color);
+                            if (cnt >= 5) {
+                                if (color === BLACK && cnt > 5) continue;
+                                return [r, c];
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        findOpenThree(boardState, color) {
+            let directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            for (let r=0; r<BOARD_SIZE; r++) {
+                for (let c=0; c<BOARD_SIZE; c++) {
+                    if (boardState[r][c] === EMPTY) {
+                        for (let [dr, dc] of directions) {
+                            if (this.checkLineCount(boardState, r, c, dr, dc, color) === 4) return [r, c];
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        checkLineCount(boardState, r, c, dr, dc, color) {
+            let count = 1;
+            let nr = r + dr, nc = c + dc;
+            while (0 <= nr && nr < BOARD_SIZE && 0 <= nc && nc < BOARD_SIZE && boardState[nr][nc] === color) {
+                count++; nr += dr; nc += dc;
+            }
+            nr = r - dr; nc = c - dc;
+            while (0 <= nr && nr < BOARD_SIZE && 0 <= nc && nc < BOARD_SIZE && boardState[nr][nc] === color) {
+                count++; nr -= dr; nc -= dc;
+            }
+            return count;
+        }
+
+        isPureOpenThree(boardState, r, c, dr, dc) {
+            for (let i = -4; i <= 4; i++) {
+                if (i === 0) continue;
+                let nr = r + dr * i, nc = c + dc * i;
+                if (0 <= nr && nr < BOARD_SIZE && 0 <= nc && nc < BOARD_SIZE && boardState[nr][nc] === EMPTY) {
+                    boardState[nr][nc] = BLACK;
+                    if (this.isPureOpenFourAt(boardState, nr, nc, dr, dc)) {
+                        boardState[nr][nc] = EMPTY;
+                        return true;
+                    }
+                    boardState[nr][nc] = EMPTY;
+                }
+            }
+            return false;
+        }
+
+        isPureOpenFourAt(boardState, r, c, dr, dc) {
+            let count = 1;
+            let nr = r + dr, nc = c + dc;
+            while (0 <= nr && nr < BOARD_SIZE && 0 <= nc && nc < BOARD_SIZE && boardState[nr][nc] === BLACK) {
+                count++; nr += dr; nc += dc;
+            }
+            let posEdge = [nr, nc];
+
+            nr = r - dr; nc = c - dc;
+            while (0 <= nr && nr < BOARD_SIZE && 0 <= nc && nc < BOARD_SIZE && boardState[nr][nc] === BLACK) {
+                count++; nr -= dr; nc -= dc;
+            }
+            let negEdge = [nr, nc];
+
+            if (count === 4) {
+                let pOpen = 0 <= posEdge[0] && posEdge[0] < BOARD_SIZE && 0 <= posEdge[1] && posEdge[1] < BOARD_SIZE && boardState[posEdge[0]][posEdge[1]] === EMPTY;
+                let nOpen = 0 <= negEdge[0] && negEdge[0] < BOARD_SIZE && 0 <= negEdge[1] && negEdge[1] < BOARD_SIZE && boardState[negEdge[0]][negEdge[1]] === EMPTY;
+                if (pOpen && nOpen) return true;
+            }
+            return false;
+        }
+
+        isFourLine(boardState, r, c, dr, dc) {
+            return this.checkLineCount(boardState, r, c, dr, dc, BLACK) === 4;
+        }
+
+        getCandidates(boardState) {
+            let candidates = new Set();
+            let hasStone = false;
+            for (let r=0; r<BOARD_SIZE; r++) {
+                for (let c=0; c<BOARD_SIZE; c++) {
+                    if (boardState[r][c] !== EMPTY) {
+                        hasStone = true;
+                        for (let dr=-1; dr<=1; dr++) {
+                            for (let dc=-1; dc<=1; dc++) {
+                                let nr = r + dr, nc = c + dc;
+                                if (0 <= nr && nr < BOARD_SIZE && 0 <= nc && nc < BOARD_SIZE && boardState[nr][nc] === EMPTY) {
+                                    candidates.add(`${nr},${nc}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (!hasStone) return [[Math.floor(BOARD_SIZE/2), Math.floor(BOARD_SIZE/2)]];
+            return Array.from(candidates).map(str => str.split(',').map(Number));
+        }
+
+        quickEvaluateMove(boardState, r, c, aiColor, oppColor) {
+            let score = 0;
+            let directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            for (let [dr, dc] of directions) {
+                score += this.checkLineCount(boardState, r, c, dr, dc, aiColor) * 10;
+                score += this.checkLineCount(boardState, r, c, dr, dc, oppColor) * 12;
+            }
+            return score + (7 - Math.abs(7 - r)) + (7 - Math.abs(7 - c));
+        }
+
+        evaluateBoard(boardState, aiColor, oppColor) {
+            let aiTotal = 0;
+            let oppTotal = 0;
+            let directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+
+            for (let r=0; r<BOARD_SIZE; r++) {
+                for (let c=0; c<BOARD_SIZE; c++) {
+                    for (let [dr, dc] of directions) {
+                        if (!(0 <= r + dr * 4 && r + dr * 4 < BOARD_SIZE && 0 <= c + dc * 4 && c + dc * 4 < BOARD_SIZE)) continue;
+
+                        let aiCount = 0, oppCount = 0, emptyCount = 0;
+                        for (let i=0; i<5; i++) {
+                            let stone = boardState[r + dr * i][c + dc * i];
+                            if (stone === aiColor) aiCount++;
+                            else if (stone === oppColor) oppCount++;
+                            else emptyCount++;
+                        }
+
+                        if (aiCount === 4 && emptyCount === 1) aiTotal += 10000;
+                        else if (aiCount === 3 && emptyCount === 2) aiTotal += 1000;
+                        else if (aiCount === 2 && emptyCount === 3) aiTotal += 100;
+
+                        if (oppCount === 4 && emptyCount === 1) oppTotal += 30000;
+                        else if (oppCount === 3 && emptyCount === 2) oppTotal += 5000;
+                        else if (oppCount === 2 && emptyCount === 3) oppTotal += 200;
+                    }
+                }
+            }
+            return aiTotal - oppTotal;
+        }
+    }
+
+    const ai = new OmokAI();
+
+    // --- Canvas 및 그래픽 그리기 렌더러 구현 ---
+    const canvas = document.getElementById("boardCanvas");
+    const ctx = canvas.getContext("2d");
+    const gridSpace = canvas.width / (BOARD_SIZE + 1);
+
+    function drawBoard() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+
+        // 바둑판 선 그리기
+        for (let i = 1; i <= BOARD_SIZE; i++) {
+            ctx.beginPath();
+            ctx.moveTo(gridSpace, i * gridSpace);
+            ctx.lineTo(BOARD_SIZE * gridSpace, i * gridSpace);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(i * gridSpace, gridSpace);
+            ctx.lineTo(i * gridSpace, BOARD_SIZE * gridSpace);
+            ctx.stroke();
+        }
+
+        // 화점(꽃점) 그리기
+        let flowerPoints = [4, 8, 12];
+        ctx.fillStyle = "black";
+        for (let r of flowerPoints) {
+            for (let c of flowerPoints) {
+                ctx.beginPath();
+                ctx.arc(c * gridSpace, r * gridSpace, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+    }
+
+    function redrawAllStones() {
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] !== EMPTY) {
+                    let cx = (c + 1) * gridSpace;
+                    let cy = (r + 1) * gridSpace;
+                    let colorStr = (board[r][c] === BLACK) ? "black" : "white";
+
+                    // 마지막 착수 지점 빨간색 링 표시
+                    if (lastMove && lastMove[0] === r && lastMove[1] === c) {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 16, 0, 2 * Math.PI);
+                        ctx.strokeStyle = "red";
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }
+
+                    // 돌 그리기
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 13, 0, 2 * Math.PI);
+                    ctx.fillStyle = colorStr;
+                    ctx.fill();
+                    ctx.strokeStyle = "gray";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function updateBoardGraphics() {
+        drawBoard();
+        redrawAllStones();
+    }
+
+    // --- UI 조작 및 게임 흐름 제어 로직 ---
+    function levelUp() {
+        if (levelIdx < levels.length - 1) {
+            levelIdx++;
+            document.getElementById("level-label").innerText = levels[levelIdx];
+        }
+    }
+
+    function levelDown() {
+        if (levelIdx > 0) {
+            levelIdx--;
+            document.getElementById("level-label").innerText = levels[levelIdx];
+        }
+    }
+
+    function toggleModeUI() {
+        let mode = document.querySelector('input[name="mode"]:checked').value;
+        document.getElementById("rb-black").disabled = (mode === "PVP");
+        document.getElementById("rb-white").disabled = (mode === "PVP");
+    }
+
+    function updateRankUI() {
+        let rankOn = document.querySelector('input[name="rank"]:checked').value === "ON";
+        if (rankOn) {
+            document.getElementById("rank-lbl").innerText = `전적: ${rankData.win}승 ${rankData.lose}패 ${rankData.draw}무`;
+        } else {
+            document.getElementById("rank-lbl").innerText = "전적 기록 비활성화";
+        }
+    }
+
+    function updateTurnStatus() {
+        if (!isRunning) return;
+        let turnStr = (currentTurn === BLACK) ? "흑돌 (선공)" : "백돌 (후공)";
+        document.getElementById("turn-status-lbl").innerText = `${turnStr} 턴`;
+        document.getElementById("turn-status-lbl").style.color = "black";
+    }
+
+    function startGame() {
+        if (!isRunning) {
+            isRunning = true;
+            document.getElementById("btn-start").disabled = true;
+            document.getElementById("btn-stop").disabled = false;
+            updateTurnStatus();
+
+            let mode = document.querySelector('input[name="mode"]:checked').value;
+            let playerColor = parseInt(document.querySelector('input[name="color"]:checked').value);
+            
+            if (mode === "PVAI" && playerColor === WHITE) {
+                setTimeout(aiTurnTrigger, 300);
+            }
+        }
+    }
+
+    function stopGame() {
+        if (isRunning) {
+            isRunning = false;
+            document.getElementById("btn-start").disabled = false;
+            document.getElementById("btn-stop").disabled = true;
+            document.getElementById("turn-status-lbl").innerText = "일시 정지";
+            document.getElementById("turn-status-lbl").style.color = "orange";
+        }
+    }
+
+    function resetGame() {
+        board = Array.from({length: BOARD_SIZE}, () => Array(BOARD_SIZE).fill(EMPTY));
+        currentTurn = BLACK;
+        isRunning = false;
+        lastMove = null;
+        document.getElementById("btn-start").disabled = false;
+        document.getElementById("btn-stop").disabled = true;
+        document.getElementById("turn-status-lbl").innerText = "대기 중";
+        document.getElementById("turn-status-lbl").style.color = "green";
+        updateBoardGraphics();
+    }
+
+    // --- 규칙 및 승리 판정 함수 ---
+    function checkRenjuRule(r, c, color) {
+        return ai.isValidMoveForRule(board, r, c, color);
+    }
+
+    function checkWin(r, c, color) {
+        let directions = [[0,1], [1,0], [1,1], [1,-1]];
+        for (let [dr, dc] of directions) {
+            let count = ai.checkLineCount(board, r, c, dr, dc, color);
+            if (color === BLACK && count === 5) return true;
+            if (color === WHITE && count >= 5) return true;
+        }
+        return false;
+    }
+
+    function placeStone(r, c) {
+        board[r][c] = currentTurn;
+        lastMove = [r, c];
+        
+        updateBoardGraphics();
+
+        if (checkWin(r, c, currentTurn)) {
+            endGame(currentTurn);
+            return;
+        }
+
+        let isDraw = board.every(row => row.every(cell => cell !== EMPTY));
+        if (isDraw) {
+            endGame(EMPTY);
+            return;
+        }
+
+        currentTurn = (currentTurn === BLACK) ? WHITE : BLACK;
+        updateTurnStatus();
+
+        let mode = document.querySelector('input[name="mode"]:checked').value;
+        if (isRunning && mode === "PVAI") {
+            let playerColor = parseInt(document.querySelector('input[name="color"]:checked').value);
+            if (currentTurn !== playerColor) {
+                setTimeout(aiTurnTrigger, 50);
+            }
+        }
+    }
+
+    function aiTurnTrigger() {
+        if (!isRunning) return;
+        let playerColor = parseInt(document.querySelector('input[name="color"]:checked').value);
+        let aiColor = (playerColor === BLACK) ? WHITE : BLACK;
+
+        let move = ai.computeMove(board, aiColor, levelIdx + 1);
+        if (move) {
+            placeStone(move[0], move[1]);
+        }
+    }
+
+    function endGame(winner) {
+        isRunning = false;
+        document.getElementById("btn-start").disabled = false;
+        document.getElementById("btn-stop").disabled = true;
+
+        let msg = "";
+        let rankOn = document.querySelector('input[name="rank"]:checked').value === "ON";
+        let mode = document.querySelector('input[name="mode"]:checked').value;
+
+        if (winner === EMPTY) {
+            msg = "무승부입니다!";
+            if (rankOn) rankData.draw++;
+        } else {
+            let winnerStr = (winner === BLACK) ? "흑돌" : "백돌";
+            msg = `${winnerStr} 승리!`;
+
+            if (rankOn) {
+                if (mode === "PVAI") {
+                    let playerColor = parseInt(document.querySelector('input[name="color"]:checked').value);
+                    if (winner === playerColor) rankData.win++;
+                    else rankData.lose++;
+                } else {
+                    rankData.win++;
+                }
+            }
+        }
+
+        updateRankUI();
+        document.getElementById("turn-status-lbl").innerText = "게임 종료";
+        document.getElementById("turn-status-lbl").style.color = "red";
+        
+        // 브라우저 얼럿 호출
+        setTimeout(() => { alert(msg); }, 100);
+    }
+
+    // --- 터치 및 클릭 이벤트 리스너 배치 ---
+    canvas.addEventListener("click", function(event) {
+        if (!isRunning) return;
+        
+        let mode = document.querySelector('input[name="mode"]:checked').value;
+        let playerColor = parseInt(document.querySelector('input[name="color"]:checked').value);
+        if (mode === "PVAI" && currentTurn !== playerColor) return;
+
+        let rect = canvas.getBoundingClientRect();
+        // 실제 캔버스 해상도(600x600)와 스타일 크기 매핑 비율 계산
+        let scaleX = canvas.width / rect.width;
+        let scaleY = canvas.height / rect.height;
+
+        let clickX = (event.clientX - rect.left) * scaleX;
+        let clickY = (event.clientY - rect.top) * scaleY;
+
+        let c = Math.round(clickX / gridSpace) - 1;
+        let r = Math.round(clickY / gridSpace) - 1;
+
+        if (0 <= r && r < BOARD_SIZE && 0 <= c && c < BOARD_SIZE) {
+            if (board[r][c] === EMPTY) {
+                if (!checkRenjuRule(r, c, currentTurn)) {
+                    alert("금수 금지: 렌주룰에 의해 흑은 3-3, 4-4 또는 장목 자리에 둘 수 없습니다.");
+                    return;
+                }
+                placeStone(r, c);
+            }
+        }
+    });
+
+    // 앱 초기화 구동
+    drawBoard();
+    toggleModeUI();
+</script>
+
+</body>
+</html>
