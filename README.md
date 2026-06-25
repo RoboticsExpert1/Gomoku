@@ -2,6 +2,7 @@
 
 A lightweight, single-file HTML5/JavaScript Gomoku (Five in a Row) game engine optimized for mobile environments. It features a rule engine that complies with international standard **Renju Rules** and a competitive AI driven by **Alpha-Beta Pruning with Zobrist Hashing**.
 
+# [Channel](https://www.youtube.com/@robotics_expert)
 
 
 ## ✨ Key Features
