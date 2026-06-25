@@ -50,7 +50,9 @@ This project is completely serverless and requires no additional dependencies or
 ```text
 .
 └── Gomoku.html        # Single-file Web Application (HTML5 Canvas / CSS3 / Vanilla JS)
+.
+```
 ---
 
-## 📝 License
+# 📝 License
 Distributed under the MIT License. Feel free to use, modify, and distribute for personal or educational purposes.
