@@ -1,59 +1,61 @@
-# 🎮 Mobile-Optimized Gomoku (Renju Rule AI)
+# 🎮 오목 (Renju Rule AI)
 
-A lightweight, single-file HTML5/JavaScript Gomoku (Five in a Row) game engine optimized for mobile environments. It features a rule engine that complies with international standard **Renju Rules** and a competitive AI driven by **Alpha-Beta Pruning with Zobrist Hashing**.
+모바일 환경에 맞춘 가볍고 독립적인 단일 파일 구조의 HTML5/JavaScript 오목 게임 엔진입니다. 국제 표준인 **렌주룰(Renju Rules)**을 준수하는 규칙 엔진과 **자브리스트 해싱(Zobrist Hashing) 기반 알파-베타 가지치기** 알고리즘이 탑재된 경쟁형 AI를 제공합니다.
 
 # [Channel](https://www.youtube.com/@robotics_expert)
 
+## ✨ 주요 기능
 
-## ✨ Key Features
-
-- **Standard Renju Rules:** Strictly prohibits Black (First Player) from making 3-3, 4-4, or Overlines (6+ stones) to eliminate the first-player advantage. White faces no restrictions.
-- **Zobrist Hashing Engine:** Translates 15x15 board states into 64-bit integer (`BigInt`) hashes using XOR bitwise operations, reducing state comparison complexity to $O(1)$.
-- **Alpha-Beta Pruning Search:** Implements a Minimax game-tree with Alpha-Beta Pruning, integrated with a Transposition Table to eliminate redundant evaluations and optimize move-searching efficiency.
-- **Dynamic AI Difficulty:** Scalable AI strength ranging from amateur levels to advanced단(Dan) ranks by adjusting lookahead depth dynamically based on selected difficulty.
-- **Mobile Responsive Design:** Solves viewport coordinate distortion between physical mobile screen sizes and standard canvas pixel density using dynamic scale mapping.
-- **Rich Game Features:** Supports Player vs Player (PVP), Player vs AI (PVAI), real-time move recommendations (Hint), Undo function, and match record tracking (Rank ON/OFF).
-
----
-
-## 🛠️ Deep Dive: Core Architecture
-
-### 1. Renju Rule Verification Logic
-The core engine continuously checks the validity of Black's moves prior to placement. It runs a deep search on 4 directional axes (horizontal, vertical, and both diagonals) to intercept illegal configurations.
-- **Double Three (3-3):** Detected via the `isPureOpenThree()` matrix analyzer, which checks if a placement simultaneously creates two or more "Open Threes" that can safely expand into Open Fours.
-- **Double Four (4-4):** Monitored by `isFourLine()`, which bans moves creating two or more independent four-stone lines, regardless of whether their ends are blocked.
-- **Overline:** Automatically triggers a soft-lock warning for Black if `checkLineCount() > 5`.
-
-### 2. State Optimization via Zobrist Hashing
-Instead of traversing the entire 15x15 grid layout array ($O(N^2)$) at every tree node, this engine initializes an array of random 64-bit cryptographic keys representing each coordinate and stone state.
-- Upon placement or an Undo operation, it maps the modifications natively using bitwise XOR operations (`boardHash ^= randomTable[r][c][stone]`).
-- The computed hash acts as a unique key for the **Transposition Table**, bypassing pre-evaluated game tree branches entirely.
-
-### 3. Static Board Evaluation weights
-The static evaluation function (`evaluateBoard`) scores the board configuration at leaf nodes based on strategic value:
-- **Defense-First Weighting:** Assigns a higher priority score to blocking an opponent's open 4-line (+30,000 pts) over finalizing its own 4-line (+10,000 pts) to enforce a rock-solid, defensive AI playstyle.
-- **Center-Proximity Focus:** Incorporates positional weights that yield extra scores as moves approach the center point (7,7) to emulate authentic opening game (Fuseki) positioning.
+- **국제 표준 렌주룰 적용:** 흑(선공)의 유리함을 상쇄하기 위해 3-3, 4-4, 장일(6목 이상)을 엄격히 금지합니다. 백(후공)에게는 아무런 제약이 없습니다.
+- **자브리스트 해싱 엔진:** 15x15 바둑판의 상태를 비트 연산(XOR)을 통해 64비트 정수(`BigInt`) 해시로 변환하여, 판 형세를 비교하는 연산 복잡도를 $O(1)$로 줄였습니다.
+- **알파-베타 가지치기 탐색:** 미니맥스(Minimax) 게임 트리에 알파-베타 가지치기를 구현하고, 전치 테이블(Transposition Table)을 통합하여 불필요한 중복 연산을 제거하고 탐색 효율을 극대화했습니다.
+- **동적 AI 난이도 조절:** 선택한 난이도에 따라 AI의 예측 깊이(Lookahead Depth)를 동적으로 조절하여, 아마추어 수준부터 전문 단(Dan) 레벨까지 대응합니다.
+- **모바일 반응형 디자인:** 모바일 기기의 화면 크기와 캔버스 픽셀 밀도 간의 좌표 왜곡 문제를 동적 스케일 매핑 알고리즘으로 해결하여 정확한 터치 인식이 가능합니다.
+- **다양한 게임 기능:** 대전 모드(PVP), AI 대전 모드(PVAI), 실시간 착수 추천(힌트), 무르기(Undo), 전적 기록(Rank ON/OFF) 기능을 지원합니다.
 
 ---
 
-## 🚀 Quick Start & Deployment
+## 🛠️ 핵심 아키텍처 상세
 
-This project is completely serverless and requires no additional dependencies or compilation tools.
+### 1. 렌주룰 검증 로직
+바둑판에 돌이 놓이기 전, 흑의 착수 금지 여부를 실시간으로 검증합니다. 가로, 세로, 양방향 대각선 등 총 4개 축을 깊이 탐색하여 규칙 위반을 차단합니다.
+- **삼삼(3-3):** `isPureOpenThree()` 함수가 배열을 분석하여, 착수 시 양방향이 모두 열린 '열린 3'이 동시에 2개 이상 생성되는지 감지합니다.
+- **사사(4-4):** `isFourLine()` 함수가 끝이 막혔는지 여부와 관계없이 독립된 4목 라인이 동시에 2개 이상 만들어지는지 감지하고 차단합니다.
+- **장일(육목):** 흑이 돌을 놓았을 때 일직선상으로 5개를 초과(`checkLineCount() > 5`)하여 나열되면 즉시 경고와 함께 착수를 제한합니다.
 
-1. Download the executable HTML file: **`Gomoku.html`**
-2. Open the file in any modern web browser (Chrome, Safari, Edge, Firefox).
-3. Tap or click anywhere on the grid to start your match. Works out-of-the-box on iOS and Android devices.
+### 2. 자브리스트 해싱을 통한 상태 최적화
+트리의 모든 노드에서 15x15 격자 배열 전체를 매번 탐색($O(N^2)$)하는 대신, 각 좌표와 돌의 상태를 나타내는 무작위 64비트 암호화 키 테이블을 미리 생성해 두고 활용합니다.
+- 돌이 놓이거나 무르기(Undo)가 실행될 때, 비트 연산(`boardHash ^= randomTable[r][c][stone]`)을 통해 즉각적으로 해시값을 갱신합니다.
+- 연산된 해시값은 **전치 테이블(Transposition Table)**의 고유 키로 사용되어, 이미 계산을 마친 게임 트리의 분기를 통째로 건너뜁니다.
+
+### 3. 정적 형세 판단 가중치 수식
+트리의 말단 노드(Leaf Node)에서 판세를 분석하는 정적 평가 함수(`evaluateBoard`)는 다음 전략적 가중치를 기반으로 점수를 산정합니다.
+- **방어 우선 가중치:** AI가 자신의 4목을 완성하는 점수(+10,000점)보다 상대방의 열린 4목을 차단하는 방어 점수(+30,000점)를 더 높게 책정하여, 견고하고 단단한 수비형 플레이를 펼치도록 유도합니다.
+- **중앙 배치 우선:** 바둑판의 중심점(7,7)에 가까울수록 추가 점수를 부여함으로써, 실제 오목 포석(포지셔닝)의 정석을 모방하도록 설계되었습니다.
 
 ---
 
-## 📁 File Structure
+## 🚀 빠른 시작 및 배포
+
+본 프로젝트는 서버가 필요 없는 서버리스(Serverless) 구조이며, 별도의 라이브러리 설치나 빌드 과정이 필요하지 않습니다.
+
+1. 실행 가능한 단일 파일인 **`Gomoku.html`**을 다운로드합니다.
+2. 크롬, 사파리, 엣지 등 현대적인 웹 브라우저에서 해당 파일을 실행합니다.
+3. PC 환경의 마우스 클릭이나 모바일 기기의 터치로 즉시 게임을 시작할 수 있습니다.
+
+---
+
+## 📁 파일 구조
 
 ```text
 .
-└── Gomoku.html        # Single-file Web Application (HTML5 Canvas / CSS3 / Vanilla JS)
+└── Gomoku.html        # 단일 파일 웹 애플리케이션 (HTML5 Canvas / CSS3 / Vanilla JS)
 .
 ```
----
 
-# 📝 License
-Distributed under the MIT License. Feel free to use, modify, and distribute for personal or educational purposes.
+## 📝 라이선스 (License)
+본 프로젝트는 **CC BY-NC-ND 4.0 (크리에이티브 커먼즈 저작자표시-비상업적-변경금지 4.0 국제)** 라이선스를 따릅니다.
+
+- **비상업적 이용 제한:** 본 프로그램 및 소스 코드는 개인적 연구, 교육 등 오직 비상업적인 용도로만 사용 및 재배포할 수 있습니다. 상업적 목적의 이용은 엄격히 금지됩니다.
+- **변경 및 수정 배포 금지:** 소스 코드를 임의로 수정, 변형, 또는 2차적 저작물로 재창작하여 배포할 수 없으며, 반드시 **원본 그대로(As-Is)** 배포해야 합니다. (단, 개인적인 로컬 환경에서의 수정 및 단순 실행은 허용됩니다.)
+- **저작자 표시:** 재배포 시 원저작자(LEE SUCHEOL) 및 유튜브 채널 출처를 반드시 명시해야 합니다.
